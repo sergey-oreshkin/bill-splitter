@@ -2,10 +2,11 @@ import home.serg.billsplitter.BillSplitter;
 
 public class Main {
     public static void main(String[] args) {
-        if (args.length != 1) {
-            System.err.println("В аргументах запуска должен быть передан только путь к файлу с данными!");
-            return;
+        String path = "resourses/input.csv";
+        
+        if (args.length == 1) {
+            path = args[0];
         }
-        new BillSplitter().run(args[0]);
+        new BillSplitter().run(path);
     }
 }

@@ -7,7 +7,9 @@ import java.io.FileWriter;
 import java.io.IOException;
 import java.nio.file.Files;
 import java.nio.file.Path;
+import java.util.ArrayList;
 import java.util.HashMap;
+import java.util.List;
 import java.util.Map;
 
 public class BillSplitter {
@@ -19,23 +21,24 @@ public class BillSplitter {
     private int[][] expensesMatrix;
     private int[] deltaMoney;
     private final Map<String, Integer> friendsId = new HashMap<>();
-    private final Map<String, Debtor> transaction = new HashMap<>();
+    private final List<Transaction> transactions = new ArrayList<>();
     
     public void run(String path) {
         try {
             parseExpenses(getFileContent(path));
-        } catch (ParseException | IOException | NumberFormatException e) {
+            calculateDelta();
+            mappingTransaction();
+            printTransaction();
+            makeOutputMatrix();
+            saveOutputMatrix();
+        } catch (IOException | RuntimeException e) {
+            System.err.println("В работе программы произошла ошибка!");
             e.printStackTrace();
         }
-        calculateDelta();
-        mappingTransaction();
-        printTransaction();
-        makeOutputMatrix();
-        saveOutputMatrix();
     }
     
-    private void saveOutputMatrix() {
-        try (BufferedWriter outputWriter = new BufferedWriter(new FileWriter(OUTPUT_FILE_NAME))){
+    private void saveOutputMatrix() throws IOException {
+        try (BufferedWriter outputWriter = new BufferedWriter(new FileWriter(OUTPUT_FILE_NAME))) {
             for (String[] str : outputMatrix) {
                 for (String s : str) {
                     outputWriter.write(s);
@@ -43,8 +46,8 @@ public class BillSplitter {
                 outputWriter.newLine();
             }
             outputWriter.flush();
-        } catch (IOException e){
-            e.printStackTrace();
+        } catch (IOException e) {
+            throw new IOException("Не удалось записать в файл!", e);
         }
     }
     
@@ -53,35 +56,38 @@ public class BillSplitter {
         String comma = ",";
         outputMatrix[0][0] = comma;
         
+        // Fill first row and first column with names
         for (String name : friendsId.keySet()) {
             outputMatrix[friendsId.get(name) + 1][0] = name + comma;
             if (friendsId.get(name) == total - 1) comma = "";
             outputMatrix[0][friendsId.get(name) + 1] = name + comma;
             comma = ",";
         }
+        
+        // Fill the matrix with "0"
         for (int i = 1; i < total + 1; i++) {
             for (int j = 1; j < total + 1; j++) {
-                if(j == total) comma = "";
+                if (j == total) comma = "";
                 outputMatrix[i][j] = "0" + comma;
             }
             comma = ",";
         }
-        for (String creditor : transaction.keySet()){
-            Debtor debtor = transaction.get(creditor);
-            int i = friendsId.get(debtor.name) + 1;
-            int j = friendsId.get(creditor) + 1;
-            outputMatrix[i][j] = outputMatrix[i][j].replace("0", debtor.debt);
+        
+        // Replace "0" with transaction values
+        for (Transaction t : transactions) {
+            int i = friendsId.get(t.debtor) + 1;
+            int j = friendsId.get(t.creditor) + 1;
+            outputMatrix[i][j] = outputMatrix[i][j].replace("0", String.valueOf(t.debt));
         }
     }
     
     private void printTransaction() {
-        if (transaction.isEmpty()) {
+        if (transactions.isEmpty()) {
             System.out.println("Никто! Никому! Ничего! Не должен!");
             return;
         }
-        for (String creditor : transaction.keySet()) {
-            Debtor debtor = transaction.get(creditor);
-            System.out.println(debtor.name + " должен " + creditor + " " + debtor.debt + " у.е.");
+        for (Transaction t : transactions) {
+            System.out.println(t.debtor + " должен " + t.creditor + " " + t.debt + " у.е.");
         }
     }
     
@@ -92,16 +98,19 @@ public class BillSplitter {
             if (deltaMoney[i] > 0) {
                 for (int j = 0; j < deltaMoney.length; j++) {
                     if (i == j) continue;
+                    
                     if (deltaMoney[j] < 0) {
                         if (deltaMoney[i] < Math.abs(deltaMoney[j])) {
-                            transaction.put(getFriendsName(j),
-                                new Debtor(getFriendsName(i), Math.abs(deltaMoney[i])));
-                            deltaMoney[j] -= deltaMoney[i];
+                            transactions.add(new Transaction(getFriendsName(j),
+                                getFriendsName(i),
+                                Math.abs(deltaMoney[i])));
+                            deltaMoney[j] += deltaMoney[i];
                             deltaMoney[i] = 0;
                         } else {
-                            transaction.put(getFriendsName(j),
-                                new Debtor(getFriendsName(i), Math.abs(deltaMoney[j])));
-                            deltaMoney[i] -= deltaMoney[j];
+                            transactions.add(new Transaction(getFriendsName(j),
+                                getFriendsName(i),
+                                Math.abs(deltaMoney[j])));
+                            deltaMoney[i] += deltaMoney[j];
                             deltaMoney[j] = 0;
                         }
                     }
@@ -110,12 +119,11 @@ public class BillSplitter {
         }
     }
     
-    private String getFriendsName(int id) {
+    private String getFriendsName(int id) throws RuntimeException {
         for (String s : friendsId.keySet()) {
             if (friendsId.get(s) == id) return s;
         }
-        System.err.println("Unknown Error!");
-        return "";
+        throw new RuntimeException("Unknown Error!");
     }
     
     private void calculateDelta() {
@@ -130,7 +138,7 @@ public class BillSplitter {
         }
     }
     
-    private void parseExpenses(String content) throws ParseException {
+    private void parseExpenses(String content) {
         String splitter = content.contains("\r\n") ? "\r\n" : "\n";
         String[] lines = content.split(splitter);
         int totalLines = lines.length - 1;
@@ -142,21 +150,21 @@ public class BillSplitter {
         expensesMatrix = new int[totalLines][totalLines];
         
         for (int i = 1; i < lines.length; i++) {
-            String[] records = lines[i].split(",");
-            String name = records[0];
+            String[] words = lines[i].split(",");
+            String name = words[0];
             
             if (friendsId.containsKey(name)) {
-                for (int j = 2; j < records.length; j++) {
-                    if ("".equals(records[j])) continue;
-                    int expense = Integer.parseInt(records[j]);
-                    expensesMatrix[friendsId.get(name)][j - 2] = expense;
+                for (int j = 2; j < words.length; j++) {
+                    if ("".equals(words[j])) continue;
+                    int expense = Integer.parseInt(words[j]);
+                    expensesMatrix[friendsId.get(name)][j - 2] += expense;
                 }
             } else {
                 friendsId.put(name, i - 1);
-                for (int j = 2; j < records.length; j++) {
-                    if ("".equals(records[j])) continue;
-                    int expense = Integer.parseInt(records[j]);
-                    expensesMatrix[i - 1][j - 2] += expense;
+                for (int j = 2; j < words.length; j++) {
+                    if ("".equals(words[j])) continue;
+                    int expense = Integer.parseInt(words[j]);
+                    expensesMatrix[i - 1][j - 2] = expense;
                 }
             }
         }
@@ -166,13 +174,15 @@ public class BillSplitter {
         return Files.readString(Path.of(path));
     }
     
-    static class Debtor {
-        String name;
-        String debt;
+    static class Transaction {
+        String creditor;
+        String debtor;
+        int debt;
         
-        Debtor(String name, int debt) {
-            this.name = name;
-            this.debt = String.valueOf(debt);
+        public Transaction(String creditor, String debtor, int debt) {
+            this.creditor = creditor;
+            this.debtor = debtor;
+            this.debt = debt;
         }
     }
 }
