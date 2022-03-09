@@ -18,8 +18,8 @@ public class BillSplitter {
     
     private int total;
     private String[][] outputMatrix;
-    private int[][] expensesMatrix;
-    private int[] deltaMoney;
+    private double[][] expensesMatrix;
+    private double[] deltaMoney;
     private final Map<String, Integer> friendsId = new HashMap<>();
     private final List<Transaction> transactions = new ArrayList<>();
     
@@ -102,14 +102,14 @@ public class BillSplitter {
                     if (deltaMoney[j] < 0) {
                         if (deltaMoney[i] < Math.abs(deltaMoney[j])) {
                             transactions.add(new Transaction(getFriendsName(j),
-                                getFriendsName(i),
-                                Math.abs(deltaMoney[i])));
+                                                            getFriendsName(i),
+                                                            Math.abs(deltaMoney[i] / 100)));
                             deltaMoney[j] += deltaMoney[i];
                             deltaMoney[i] = 0;
                         } else {
                             transactions.add(new Transaction(getFriendsName(j),
-                                getFriendsName(i),
-                                Math.abs(deltaMoney[j])));
+                                                            getFriendsName(i),
+                                                            Math.abs(deltaMoney[j] / 100)));
                             deltaMoney[i] += deltaMoney[j];
                             deltaMoney[j] = 0;
                         }
@@ -128,7 +128,7 @@ public class BillSplitter {
     
     private void calculateDelta() {
         total = friendsId.size();
-        deltaMoney = new int[total];
+        deltaMoney = new double[total];
         for (int i = 0; i < total; i++) {
             for (int j = 0; j < total; j++) {
                 if (i == j) continue;
@@ -147,26 +147,24 @@ public class BillSplitter {
             throw new ParseException("В файле нет записей!");
         }
         
-        expensesMatrix = new int[totalLines][totalLines];
+        // Get unique names from first line
+        String[] header = lines[0].split(",");
+        for (int i = 2; i < header.length; i++) {
+            friendsId.put(header[i], i - 2);
+        }
+        
+        expensesMatrix = new double[friendsId.size()][friendsId.size()];
         
         for (int i = 1; i < lines.length; i++) {
             String[] words = lines[i].split(",");
             String name = words[0];
             
-            if (friendsId.containsKey(name)) {
-                for (int j = 2; j < words.length; j++) {
-                    if ("".equals(words[j])) continue;
-                    int expense = Integer.parseInt(words[j]);
-                    expensesMatrix[friendsId.get(name)][j - 2] += expense;
-                }
-            } else {
-                friendsId.put(name, i - 1);
-                for (int j = 2; j < words.length; j++) {
-                    if ("".equals(words[j])) continue;
-                    int expense = Integer.parseInt(words[j]);
-                    expensesMatrix[i - 1][j - 2] = expense;
-                }
+            for (int j = 2; j < words.length; j++) {
+                if ("".equals(words[j])) continue;
+                double expense = Double.parseDouble(words[j]);
+                expensesMatrix[friendsId.get(name)][j - 2] += expense * 100;
             }
+            
         }
     }
     
@@ -177,9 +175,9 @@ public class BillSplitter {
     static class Transaction {
         String creditor;
         String debtor;
-        int debt;
+        double debt;
         
-        public Transaction(String creditor, String debtor, int debt) {
+        public Transaction(String creditor, String debtor, double debt) {
             this.creditor = creditor;
             this.debtor = debtor;
             this.debt = debt;
