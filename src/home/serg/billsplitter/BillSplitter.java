@@ -31,9 +31,9 @@ public class BillSplitter {
             printTransaction();
             makeOutputMatrix();
             saveOutputMatrix();
-        } catch (IOException | RuntimeException e) {
+        } catch (IOException | ParseException e) {
             System.err.println("В работе программы произошла ошибка!");
-            e.printStackTrace();
+            System.err.println(e.getMessage());
         }
     }
     
@@ -101,15 +101,11 @@ public class BillSplitter {
                     
                     if (deltaMoney[j] < 0) {
                         if (deltaMoney[i] < Math.abs(deltaMoney[j])) {
-                            transactions.add(new Transaction(getFriendsName(j),
-                                                            getFriendsName(i),
-                                                            Math.abs(deltaMoney[i] / 100)));
+                            transactions.add(new Transaction(getFriendsName(j), getFriendsName(i), Math.abs(deltaMoney[i] / 100)));
                             deltaMoney[j] += deltaMoney[i];
                             deltaMoney[i] = 0;
                         } else {
-                            transactions.add(new Transaction(getFriendsName(j),
-                                                            getFriendsName(i),
-                                                            Math.abs(deltaMoney[j] / 100)));
+                            transactions.add(new Transaction(getFriendsName(j), getFriendsName(i), Math.abs(deltaMoney[j] / 100)));
                             deltaMoney[i] += deltaMoney[j];
                             deltaMoney[j] = 0;
                         }
@@ -119,11 +115,11 @@ public class BillSplitter {
         }
     }
     
-    private String getFriendsName(int id) throws RuntimeException {
+    private String getFriendsName(int id) throws ParseException {
         for (String s : friendsId.keySet()) {
             if (friendsId.get(s) == id) return s;
         }
-        throw new RuntimeException("Unknown Error!");
+        throw new ParseException("В первой строке файла должны быть указаны все участники!");
     }
     
     private void calculateDelta() {
@@ -138,18 +134,19 @@ public class BillSplitter {
         }
     }
     
-    private void parseExpenses(String content) {
+    private void parseExpenses(String content) throws ParseException {
         String splitter = content.contains("\r\n") ? "\r\n" : "\n";
         String[] lines = content.split(splitter);
-        int totalLines = lines.length - 1;
         
-        if (totalLines < 1) {
+        if (lines.length < 1) {
             throw new ParseException("В файле нет записей!");
         }
         
         // Get unique names from first line
         String[] header = lines[0].split(",");
         for (int i = 2; i < header.length; i++) {
+            if (friendsId.containsKey(header[i]))
+                throw new ParseException("В первой строке должны быть указаны все участники без повторов!");
             friendsId.put(header[i], i - 2);
         }
         
@@ -161,15 +158,32 @@ public class BillSplitter {
             
             for (int j = 2; j < words.length; j++) {
                 if ("".equals(words[j])) continue;
-                double expense = Double.parseDouble(words[j]);
-                expensesMatrix[friendsId.get(name)][j - 2] += expense * 100;
+                
+                try {
+                    double expense = Double.parseDouble(words[j]);
+                    expensesMatrix[friendsId.get(name)][j - 2] += expense * 100;
+                } catch (NumberFormatException ex) {
+                    throw new ParseException(
+                        "Некорректное значение!" +
+                            "\nСтрока " + (i + 1) +
+                            "\nСтолбец " + (j + 1) +
+                            "\nЗначение " + words[j], ex);
+                } catch (NullPointerException ex) {
+                    throw new ParseException(
+                        "Неизвестное имя участника!" +
+                            "\nСтрока " + (i + 1) +
+                            "\nИмя " + name);
+                }
             }
-            
         }
     }
     
     private String getFileContent(String path) throws IOException {
-        return Files.readString(Path.of(path));
+        try {
+            return Files.readString(Path.of(path));
+        } catch (IOException ex) {
+            throw new IOException("Не удалось прочитать данные из файла! Не верный путь или имя файла!", ex);
+        }
     }
     
     static class Transaction {
