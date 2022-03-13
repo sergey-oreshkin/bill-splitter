@@ -1,6 +1,7 @@
 package home.serg.billsplitter.exception;
 
 public class ParseException extends RuntimeException {
+    
     public ParseException() {
         super();
     }
