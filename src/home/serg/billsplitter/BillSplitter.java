@@ -14,8 +14,6 @@ import java.util.Map;
 
 public class BillSplitter {
     
-    private static final String OUTPUT_FILE_NAME = "output.csv";
-    
     private int total;
     private String[][] outputMatrix;
     private double[][] expensesMatrix;
@@ -23,22 +21,22 @@ public class BillSplitter {
     private final Map<String, Integer> friendsId = new HashMap<>();
     private final List<Transaction> transactions = new ArrayList<>();
     
-    public void run(String path) {
+    public void run(String inputPath, String outputPath) {
         try {
-            parseExpenses(getFileContent(path));
+            parseExpenses(getFileContent(inputPath));
             calculateDelta();
             mappingTransaction();
             printTransaction();
             makeOutputMatrix();
-            saveOutputMatrix();
+            saveOutputMatrix(outputPath);
         } catch (IOException | ParseException e) {
             System.err.println("В работе программы произошла ошибка!");
             System.err.println(e.getMessage());
         }
     }
     
-    private void saveOutputMatrix() throws IOException {
-        try (BufferedWriter outputWriter = new BufferedWriter(new FileWriter(OUTPUT_FILE_NAME))) {
+    private void saveOutputMatrix(String path) throws IOException {
+        try (BufferedWriter outputWriter = new BufferedWriter(new FileWriter(path))) {
             for (String[] str : outputMatrix) {
                 for (String s : str) {
                     outputWriter.write(s);
