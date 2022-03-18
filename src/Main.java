@@ -7,7 +7,6 @@ import home.serg.billsplitter.dataio.BillDataWriterToFile;
 import home.serg.billsplitter.exception.ParseException;
 import home.serg.billsplitter.exception.SplitException;
 import home.serg.billsplitter.model.BillMatrix;
-import home.serg.billsplitter.parser.BillDataParser;
 import home.serg.billsplitter.parser.BillDataParserCsv;
 
 import java.io.IOException;
@@ -20,25 +19,23 @@ public class Main {
         
         setParameters(args);
         
-        BillDataReader reader = new BillDataReaderFromFile();
-        BillDataParser parser = new BillDataParserCsv();
+        BillDataReader reader = new BillDataReaderFromFile(new BillDataParserCsv());
         BillSplitter splitter = new BillSplitterImpl();
-        BillDataWriter writer = new BillDataWriterToFile();
+        BillDataWriter writer = new BillDataWriterToFile(new BillDataParserCsv());
         
         try {
-            BillMatrix billMatrix = parser.getExpenseMatrix(reader.getContent(inputPath));
+            BillMatrix billMatrix = reader.getInputMatrix(inputPath);
             billMatrix = splitter.getOutputMatrix(billMatrix);
-            writer.write(outputPath, parser.getOutputMatrix(billMatrix));
+            writer.write(outputPath, billMatrix);
             System.out.println("Выходные данные успешно сохранены.");
         } catch (IOException | ParseException | SplitException ex) {
             System.err.println("В работе программы произошла ошибка!");
             System.err.println(ex.getMessage());
         }
-        
     }
     
     private static void setParameters(String[] params) {
-        inputPath = "resourses/input1.csv";
+        inputPath = "resources/input1.csv";
         outputPath = "output.csv";
         switch (params.length) {
             case 2:
@@ -48,8 +45,8 @@ public class Main {
         }
         System.out.println(
             "Применены следующие значения" +
-                "\n Входной файл - " + inputPath +
-                "\n Выходной файл - " + outputPath
+                "\nВходной файл - " + inputPath +
+                "\nВыходной файл - " + outputPath
         );
     }
 }
