@@ -46,7 +46,6 @@ public class Main {
             case 1:
                 inputPath = params[0];
         }
-        
         System.out.println(
             "Применены следующие значения" +
                 "\n Входной файл - " + inputPath +
