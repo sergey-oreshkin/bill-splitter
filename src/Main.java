@@ -38,15 +38,13 @@ public class Main {
     }
     
     private static void setParameters(String[] params) {
+        inputPath = "resourses/input1.csv";
+        outputPath = "output.csv";
         switch (params.length) {
             case 2:
                 outputPath = params[1];
             case 1:
                 inputPath = params[0];
-                break;
-            default:
-                inputPath = "resourses/input1.csv";
-                outputPath = "output.csv";
         }
         
         System.out.println(
