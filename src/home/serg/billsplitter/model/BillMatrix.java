@@ -1,18 +1,19 @@
 package home.serg.billsplitter.model;
 
+import java.math.BigDecimal;
 import java.util.List;
 
 public class BillMatrix {
     
-    private int[][] matrix;
+    private BigDecimal[][] matrix;
     private List<String> members;
     
-    public BillMatrix(List<String> members, int[][] matrix) {
+    public BillMatrix(List<String> members, BigDecimal[][] matrix) {
         this.matrix = matrix;
         this.members = members;
     }
     
-    public int[][] getMatrix() {
+    public BigDecimal[][] getMatrix() {
         return matrix;
     }
     

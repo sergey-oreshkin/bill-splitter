@@ -3,20 +3,12 @@ package home.serg.billsplitter.parser;
 import home.serg.billsplitter.exception.ParseException;
 import home.serg.billsplitter.model.BillMatrix;
 
+import java.math.BigDecimal;
 import java.util.ArrayList;
+import java.util.Arrays;
 import java.util.List;
 
 public class BillDataParserCsv implements BillDataParser {
-    
-    int accuracy;
-    
-    public BillDataParserCsv() {
-        accuracy = 100;
-    }
-    
-    public BillDataParserCsv(int decimalPlaces) {
-        this.accuracy = (int) Math.pow(10, decimalPlaces);
-    }
     
     @Override
     public BillMatrix getExpenseMatrix(String content) throws ParseException {
@@ -40,7 +32,7 @@ public class BillDataParserCsv implements BillDataParser {
     public String[][] getOutputMatrix(BillMatrix billMatrix) {
         
         List<String> members = billMatrix.getMembers();
-        int[][] matrix = billMatrix.getMatrix();
+        BigDecimal[][] matrix = billMatrix.getMatrix();
         String[][] outputMatrix = new String[members.size() + 1][members.size() + 1];
         String comma = ",";
         int size = members.size();
@@ -58,12 +50,7 @@ public class BillDataParserCsv implements BillDataParser {
         for (int i = 1; i < size + 1; i++) {
             for (int j = 1; j < size + 1; j++) {
                 if (j == size) comma = "";
-                if (matrix[i - 1][j - 1] == 0) {
-                    outputMatrix[i][j] = "0" + comma;
-                    continue;
-                }
-                double value = (double) matrix[i - 1][j - 1] / accuracy;
-                outputMatrix[i][j] = value + comma;
+                outputMatrix[i][j] = matrix[i - 1][j - 1].doubleValue() + comma;
             }
             comma = ",";
         }
@@ -82,8 +69,11 @@ public class BillDataParserCsv implements BillDataParser {
         return members;
     }
     
-    private int[][] getMatrix(String[] lines, List<String> members) {
-        int[][] matrix = new int[members.size()][members.size()];
+    private BigDecimal[][] getMatrix(String[] lines, List<String> members) {
+        BigDecimal[][] matrix = new BigDecimal[members.size()][members.size()];
+        for (BigDecimal[] row : matrix) {
+            Arrays.fill(row, BigDecimal.ZERO);
+        }
         
         for (int i = 1; i < lines.length; i++) {
             String[] words = lines[i].split(",");
@@ -94,7 +84,7 @@ public class BillDataParserCsv implements BillDataParser {
                 
                 try {
                     double expense = Double.parseDouble(words[j]);
-                    matrix[members.indexOf(name)][j - 2] += expense * accuracy;
+                    matrix[members.indexOf(name)][j - 2] = BigDecimal.valueOf(expense).add(matrix[members.indexOf(name)][j - 2]);
                 } catch (NumberFormatException ex) {
                     throw new ParseException(
                         "Некорректное значение!" +

@@ -15,14 +15,13 @@ import java.io.IOException;
 public class Main {
     private static String inputPath = "";
     private static String outputPath = "";
-    private static int decimalPlaces = 0;
     
     public static void main(String[] args) {
         
         setParameters(args);
         
         BillDataReader reader = new BillDataReaderFromFile();
-        BillDataParser parser = new BillDataParserCsv(decimalPlaces);
+        BillDataParser parser = new BillDataParserCsv();
         BillSplitter splitter = new BillSplitterImpl();
         BillDataWriter writer = new BillDataWriterToFile();
         
@@ -39,27 +38,16 @@ public class Main {
     }
     
     private static void setParameters(String[] params) {
+        inputPath = "resourses/input1.csv";
+        outputPath = "output.csv";
         switch (params.length) {
-            case 3:
-                try {
-                    decimalPlaces = Integer.parseInt(params[2]);
-                } catch (NumberFormatException ex) {
-                    System.out.println("Не удалось распознать третий параметр! Будет использовано значение по умолчанию.");
-                }
             case 2:
                 outputPath = params[1];
             case 1:
                 inputPath = params[0];
-                break;
-            default:
-                inputPath = "resourses/input1.csv";
-                outputPath = "output.csv";
-                decimalPlaces = 2;
         }
-        
         System.out.println(
             "Применены следующие значения" +
-                "\n Точность - " + decimalPlaces + " знака после запятой" +
                 "\n Входной файл - " + inputPath +
                 "\n Выходной файл - " + outputPath
         );
