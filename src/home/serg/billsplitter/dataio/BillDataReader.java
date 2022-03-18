@@ -1,8 +1,10 @@
 package home.serg.billsplitter.dataio;
 
+import home.serg.billsplitter.model.BillMatrix;
+
 import java.io.IOException;
 
 public interface BillDataReader {
     
-    String getContent(String path) throws IOException;
+    BillMatrix getInputMatrix(String path) throws IOException;
 }

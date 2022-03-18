@@ -1,14 +1,25 @@
 package home.serg.billsplitter.dataio;
 
+import home.serg.billsplitter.model.BillMatrix;
+import home.serg.billsplitter.parser.BillDataParser;
+
 import java.io.BufferedWriter;
 import java.io.FileWriter;
 import java.io.IOException;
 
 public class BillDataWriterToFile implements BillDataWriter {
+    
+    BillDataParser parser;
+    
+    public BillDataWriterToFile(BillDataParser parser) {
+        this.parser = parser;
+    }
+    
     @Override
-    public void write(String path, String[][] matrix) throws IOException {
+    public void write(String path, BillMatrix matrix) throws IOException {
+        
         try (BufferedWriter outputWriter = new BufferedWriter(new FileWriter(path))) {
-            for (String[] str : matrix) {
+            for (String[] str : parser.getOutputMatrix(matrix)) {
                 for (String s : str) {
                     outputWriter.write(s);
                 }
