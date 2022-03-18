@@ -3,9 +3,9 @@ package home.serg.billsplitter.model;
 public class BillTransaction {
     String creditor;
     String debtor;
-    int debt;
+    double debt;
     
-    public BillTransaction(String creditor, String debtor, int debt) {
+    public BillTransaction(String creditor, String debtor, double debt) {
         this.creditor = creditor;
         this.debtor = debtor;
         this.debt = debt;
@@ -19,7 +19,7 @@ public class BillTransaction {
         return debtor;
     }
     
-    public int getDebt() {
+    public double getDebt() {
         return debt;
     }
 }
